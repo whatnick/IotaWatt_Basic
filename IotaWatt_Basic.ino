@@ -43,7 +43,7 @@ bool shouldSaveConfig = false;
 #define SPI_CS_C      2        // Phase C CS
 #define ADC_VREF    3300     // 3.3V Vref
 #define ADC_CLK     1600000  // SPI clock 1.6MHz
-
+#define calibrationMultiplier 4 // Current value multiplied by this value to get Watts
 
 MCP3208 adcA(ADC_VREF, SPI_CS_A);
 MCP3208 adcB(ADC_VREF, SPI_CS_B);
@@ -180,7 +180,7 @@ void calcVI(unsigned int crossings, unsigned int timeout,MCP3208 adc,MCP3208::Ch
     yield();
   }
   phases[pow_index/2] = sqrt(sumsqV);
-  currents[pow_index] = sqrt(sumsqI);
+  currents[pow_index] = sqrt(sumsqI) * calibrationMultiplier;
   realPowers[pow_index]=sumIV;
   t2 = micros();
 }
@@ -284,18 +284,22 @@ void loop() {
   }
   Serial.println();
 
-  /*
+  
   //ESP.wdtFeed();
   if (client.connect(server,80)) {  //   "184.106.153.149" or api.thingspeak.com
     String postStr = String(auth);
            postStr +="&field1=";
-           postStr += String(Vrms);
+           postStr += String(currents[0]);
            postStr +="&field2=";
-           postStr += String(realPower);
+           postStr += String(currents[1]);
            postStr +="&field3=";
-           postStr += String(Irms);
+           postStr += String(currents[2]);
            postStr +="&field4=";
-           postStr += String(powerFactor);
+           postStr += String(currents[3]);
+           postStr +="&field5=";
+           postStr += String(currents[4]);
+           postStr +="&field6=";
+           postStr += String(currents[5]);
            postStr += "\r\n\r\n";
  
      client.print("POST /update HTTP/1.1\n"); 
@@ -309,7 +313,7 @@ void loop() {
      client.print(postStr);  
   }
   client.stop();
-  */ 
-  //delay(15000);  
+  
+  delay(15000);  
 }
 

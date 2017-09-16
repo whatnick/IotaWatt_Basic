@@ -267,53 +267,57 @@ void setup() {
   ESP.wdtEnable(WDTO_8S); // Enabling Watchdog
 }
 
+long curMillis=0,prevMillis=0;
+
 void loop() {
   ArduinoOTA.handle();
   ESP.wdtFeed();
-  calcVI(20,2000,adcA,MCP3208::SINGLE_1,0); 
-  calcVI(20,2000,adcA,MCP3208::SINGLE_2,1);
-  calcVI(20,2000,adcB,MCP3208::SINGLE_1,2); 
-  calcVI(20,2000,adcB,MCP3208::SINGLE_2,3);
-  calcVI(20,2000,adcC,MCP3208::SINGLE_1,4); 
-  calcVI(20,2000,adcC,MCP3208::SINGLE_2,5);
-
-  for(int k=0;k<6;k++)
+  curMillis = millis();
+  if((curMillis-prevMillis) > 15000)
   {
-    Serial.print(currents[k]);
-    Serial.print(",");
-  }
-  Serial.println();
+    calcVI(20,2000,adcA,MCP3208::SINGLE_1,0); 
+    calcVI(20,2000,adcA,MCP3208::SINGLE_2,1);
+    calcVI(20,2000,adcB,MCP3208::SINGLE_1,2); 
+    calcVI(20,2000,adcB,MCP3208::SINGLE_2,3);
+    calcVI(20,2000,adcC,MCP3208::SINGLE_1,4); 
+    calcVI(20,2000,adcC,MCP3208::SINGLE_2,5);
+  
+    for(int k=0;k<6;k++)
+    {
+      Serial.print(currents[k]);
+      Serial.print(",");
+    }
+    Serial.println();
+  
+    if (client.connect(server,80)) {  //   "184.106.153.149" or api.thingspeak.com
+      String postStr = String(auth);
+             postStr +="&field1=";
+             postStr += String(currents[0]);
+             postStr +="&field2=";
+             postStr += String(currents[1]);
+             postStr +="&field3=";
+             postStr += String(currents[2]);
+             postStr +="&field4=";
+             postStr += String(currents[3]);
+             postStr +="&field5=";
+             postStr += String(currents[4]);
+             postStr +="&field6=";
+             postStr += String(currents[5]);
+             postStr += "\r\n\r\n";
+   
+       client.print("POST /update HTTP/1.1\n"); 
+       client.print("Host: api.thingspeak.com\n"); 
+       client.print("Connection: close\n"); 
+       client.print("X-THINGSPEAKAPIKEY: "+String(auth)+"\n"); 
+       client.print("Content-Type: application/x-www-form-urlencoded\n"); 
+       client.print("Content-Length: "); 
+       client.print(postStr.length()); 
+       client.print("\n\n"); 
+       client.print(postStr);  
+    }
+    client.stop();
 
-  
-  //ESP.wdtFeed();
-  if (client.connect(server,80)) {  //   "184.106.153.149" or api.thingspeak.com
-    String postStr = String(auth);
-           postStr +="&field1=";
-           postStr += String(currents[0]);
-           postStr +="&field2=";
-           postStr += String(currents[1]);
-           postStr +="&field3=";
-           postStr += String(currents[2]);
-           postStr +="&field4=";
-           postStr += String(currents[3]);
-           postStr +="&field5=";
-           postStr += String(currents[4]);
-           postStr +="&field6=";
-           postStr += String(currents[5]);
-           postStr += "\r\n\r\n";
- 
-     client.print("POST /update HTTP/1.1\n"); 
-     client.print("Host: api.thingspeak.com\n"); 
-     client.print("Connection: close\n"); 
-     client.print("X-THINGSPEAKAPIKEY: "+String(auth)+"\n"); 
-     client.print("Content-Type: application/x-www-form-urlencoded\n"); 
-     client.print("Content-Length: "); 
-     client.print(postStr.length()); 
-     client.print("\n\n"); 
-     client.print(postStr);  
+    prevMillis = curMillis;
   }
-  client.stop();
-  
-  delay(15000);  
 }
 
